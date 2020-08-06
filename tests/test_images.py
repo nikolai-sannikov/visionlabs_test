@@ -45,10 +45,12 @@ class ImageTests(unittest.TestCase):
         return images
     
 
-    def test_new_image_add(self):
+    def test_new_images_add(self):
         images = self.download_images()                
         images_encoded = [encode_image_base64(img) for img in images]     
-
-        for image_encoded in images_encoded[:1]:            
+        self.image_filenames = []
+        for image_encoded in images_encoded:            
             response = self.client.post("/image", data=image_encoded)
-            print(response.data)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue('new_image_filename' in response.get_json())
+            self.image_filenames.append(response.get_json()['new_image_filename'])

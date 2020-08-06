@@ -39,6 +39,6 @@ def add_image():
 
     decoded_image.save(image_path)
 
-    response = {'success':True, 'new_image_name': random_filename}
+    response = {'success':True, 'new_image_filename': random_filename}
     return jsonify(response), 200
     
