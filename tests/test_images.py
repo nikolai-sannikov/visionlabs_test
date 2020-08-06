@@ -39,6 +39,18 @@ class ImageTests(unittest.TestCase):
         self.app_context.pop()
 
     @staticmethod
+    def delete_and_verify_deletion(filename_to_delete, client):
+        log.info("Deleting file %s",filename_to_delete)
+        client.delete("/image", data=filename_to_delete)                
+        
+        response = client.get("/image")                
+        listed_files = [image_metadata['file_name'] for image_metadata in response.get_json()]
+
+        if not filename_to_delete.endswith('.jpg'):
+            filename_to_delete+='.jpg'
+        assert filename_to_delete not in listed_files, "File with this name still exists in the list"
+
+    @staticmethod
     def download_images():
         images = []
 
@@ -66,11 +78,28 @@ class ImageTests(unittest.TestCase):
             # response should contain filename assigned to this image, store these filenames to verify their existense later
             self.assertTrue('new_image_filename' in response.get_json())
             self.image_filenames.append(response.get_json()['new_image_filename'])
-
-        response = self.client.get("/image")
-        
+        log.info("Created files: %s", str(self.image_filenames))
+                
+        #all the newly added files should be now listed
+        response = self.client.get("/image")        
         log.debug(response.get_json())
+        listed_files = [image_metadata['file_name'] for image_metadata in response.get_json()]
+        for image_filename in self.image_filenames:
+            self.assertTrue(image_filename in listed_files)
 
+        # remove one new image from list with extension 
+        filename_to_delete = self.image_filenames[-1]
+        self.image_filenames = self.image_filenames[:-1]
+        ImageTests.delete_and_verify_deletion(filename_to_delete, self.client)
+        # and anouther one without
+        filename_to_delete = self.image_filenames[-1]
+        self.image_filenames = self.image_filenames[:-1]
+        filename_to_delete = os.path.splitext(filename_to_delete)[0]
+        ImageTests.delete_and_verify_deletion(filename_to_delete, self.client)
 
+    def test_delete_non_existing_image(self):
+        response = self.client.delete("/image", data="definitely_non_existent_image")
+        log.debug(response.get_json())
+        self.assertEqual(response.status_code, 400)
     
         
