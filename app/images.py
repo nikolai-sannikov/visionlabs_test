@@ -9,6 +9,7 @@ from PIL import Image
 import random
 
 from app.image_utils import decode_image_base64
+from app.models import *
 
 images_api = Blueprint('images_api', __name__)
 
@@ -23,7 +24,6 @@ def get_random_string(length=10):
     letters = string.ascii_lowercase
     result_str = ''.join(random.choice(letters) for i in range(length))
     return result_str
-
     
 @images_api.route('/image', methods=['POST'])
 def add_image():
@@ -41,4 +41,29 @@ def add_image():
 
     response = {'success':True, 'new_image_filename': random_filename}
     return jsonify(response), 200
+
+@images_api.route('/image', methods=['GET'])
+def list_images():
+
+    images_dir_contents = []
+    try:
+        images_dir_contents= os.listdir(current_app.config["IMAGES_PATH"])    
+    except FileNotFoundError:
+        # if images directory was not found, assume it is not yet created
+        # no action needed, it is created automatically on first image upload
+        pass
     
+    found_images = []
+    for filename in images_dir_contents:                        
+        try:
+            image = ImageMetadata(filename, current_app.config["IMAGES_PATH"])
+            found_images.append(image)
+        except AssertionError as error:            
+            # simply ignore all non-image or non-supported files
+            pass        
+        
+    response = [image.to_dict() for image in found_images]   
+    return jsonify(response),200
+    
+
+        

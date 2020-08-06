@@ -4,6 +4,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     IMAGES_PATH = './images'
+    SUPPORTED_IMAGE_FILE_EXTENSIONS = ['.jpg'] 
 
     @staticmethod
     def init_app(app):
