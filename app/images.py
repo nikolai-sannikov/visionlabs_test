@@ -3,10 +3,12 @@ from io import BytesIO
 import base64
 import string
 import logging
-from app.errors import InvalidUsage, log_error
+from app.errors import InvalidUsage
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from PIL import Image
+
+from werkzeug.exceptions import NotFound
 
 import random
 
@@ -36,7 +38,7 @@ def add_image():
     try:
         decoded_image = decode_image_base64(base64_encoded_image)
     except Exception as e:
-        log_error(e)
+        log.info(e)
         raise InvalidUsage("Could not decode image from the provided data", 400)
 
     # filename is not provided in encoded image
@@ -98,5 +100,14 @@ def delete_image():
         response ={'success':True, 'deleted_filename': filename_to_delete}
         return response, 200
     else:
-        raise InvalidUsage("File does not exist", 400, filename_to_delete)
+        raise InvalidUsage("File does not exist", 400, payload = [filename_to_delete])
         
+@images_api.route("/images/<string:filename>", methods=['GET'])
+def get_file(filename):    
+    file_extension = os.path.splitext(filename)[1]
+    if file_extension not in current_app.config["SUPPORTED_IMAGE_FILE_EXTENSIONS"]:
+        raise InvalidUsage("Extension is not supported", 400, [file_extension])
+    try:          
+        return send_from_directory(current_app.config['IMAGES_PATH'], filename, as_attachment=False)
+    except NotFound:
+        raise InvalidUsage("Image with this name has not been found", 404, [current_app.config['IMAGES_PATH'],filename+file_extension])

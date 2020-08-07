@@ -60,12 +60,13 @@ class ImageTests(unittest.TestCase):
             image = Image.open(response.raw)    
             
             images.append(image)
-        log.info("Retrieved %d images for future test out of %d", len(images), len(ImageTests.IMAGE_URLS))      
+        log.info("Retrieved %d out of %d images for future test", len(images), len(ImageTests.IMAGE_URLS))      
         return images
 
     def test_images_full_scenario(self):
         #download preset images to be used in testing from the web
         images = self.download_images()                 
+        assert len(images)>=3, "Need to get at least 3 images to successfully do the tests"
         #encode images in base64  
         images_encoded = [encode_image_base64(img) for img in images]     
 
@@ -87,19 +88,30 @@ class ImageTests(unittest.TestCase):
         for image_filename in self.image_filenames:
             self.assertTrue(image_filename in listed_files)
 
-        # remove one new image from list with extension 
+        # remove one of the new images by name with extension 
         filename_to_delete = self.image_filenames[-1]
         self.image_filenames = self.image_filenames[:-1]
         ImageTests.delete_and_verify_deletion(filename_to_delete, self.client)
-        # and anouther one without
+        # and remove anouther one without extension
         filename_to_delete = self.image_filenames[-1]
         self.image_filenames = self.image_filenames[:-1]
         filename_to_delete = os.path.splitext(filename_to_delete)[0]
         ImageTests.delete_and_verify_deletion(filename_to_delete, self.client)
+
+        # try to get a remaining image         
+        image_to_get = self.image_filenames[-1]
+        log.info("Retrieving an image: %s",image_to_get)
+        response = self.client.get("/images/"+image_to_get)            
+        self.assertTrue(response.get_data() is not None)
+        self.assertEqual(response.status_code, 200)
 
     def test_delete_non_existing_image(self):
         response = self.client.delete("/image", data="definitely_non_existent_image")
         log.debug(response.get_json())
         self.assertEqual(response.status_code, 400)
     
+    def test_get_non_existing_image(self):
+        response = self.client.get("/images/definitely_non_existent_image.jpg")
+        log.debug(response.get_json())
+        self.assertEqual(response.status_code, 404)
         

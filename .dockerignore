@@ -1,0 +1,4 @@
+*.pyc
+test_images/
+images/
+*/__pycache__/*
