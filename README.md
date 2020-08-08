@@ -88,3 +88,7 @@ Directory to store images can also be set in ```config.py``` file. For testing s
 
 ## Deployment
 Run ```docker-compose up``` in project directory.
+
+## Dependencies
+Docker: based on ```tiangolo/uwsgi-nginx-flask:python3.7``` image
+python: ```Flask```, ```Pillow``` (see details in ```requirements.txt```)
