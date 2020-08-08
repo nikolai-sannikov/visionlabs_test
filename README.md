@@ -91,3 +91,7 @@ Run ```$docker-compose up``` in project directory. By default uses port ```5000`
 
 ## Testing
 Run ```$flask run``` to start provided basic unit tests and a full usage scenario.
+
+## Dependencies
+Docker: based on ```tiangolo/uwsgi-nginx-flask:python3.7``` image
+python: ```Flask```, ```Pillow``` (see details in ```requirements.txt```)
