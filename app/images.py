@@ -13,7 +13,6 @@ from app.models import *
 from app.errors import InvalidUsage
 
 images_api = Blueprint('images_api', __name__)
-log = logging.getLogger("ImagesLogger")
 
 
 def _setup_image_directory():
@@ -42,7 +41,7 @@ def add_image():
     try:
         decoded_image = decode_image_base64(base64_encoded_image)
     except Exception as e:
-        log.info(e)
+        current_app.logger.info(e)
         raise InvalidUsage("Could not decode image from the provided data", 400)
 
     # filename is not provided for an encoded image: generate it randomly
@@ -53,6 +52,7 @@ def add_image():
     decoded_image.save(image_path, "JPEG")
 
     # reply with success code and the name of a newly added image
+    current_app.logger.info("User %s has added image %s", request.remote_addr, random_filename)
     response = {'success': True, 'new_image_filename': random_filename}
     return jsonify(response), 200
 
@@ -64,7 +64,7 @@ def _list_parent_dir_contents():
     except FileNotFoundError:
         # if images directory was not found, assume it is not yet created
         # no action needed, it is created automatically on first image upload
-        log.debug("Requested list of images, but images directory %s was not found", current_app.config["IMAGES_PATH"])
+        current_app.logger.debug("Requested list of images, but images directory %s was not found", current_app.config["IMAGES_PATH"])
         return []
 
 
@@ -82,10 +82,11 @@ def list_images():
             image = ImageMetadata(filename, current_app.config["IMAGES_PATH"])
             found_images.append(image)
         except AssertionError:
-            log.warning("Images folder contains non-supported file: %s", filename)
+            current_app.logger.warning("Images folder contains non-supported file: %s", filename)
             # simply ignore all files with a non-supported extension
             pass
-
+    
+    current_app.logger.info("Listing files for %s, %d files in list", request.remote_addr, len(found_images))
     response = [image.to_dict() for image in found_images]
     return jsonify(response), 200
 
@@ -111,12 +112,13 @@ def delete_image():
     for filename_to_delete in filenames_to_delete:
         try:
             os.remove(os.path.join(current_app.config["IMAGES_PATH"], filename_to_delete))
+            current_app.logger.info("Deleted file %s by request of %s", filename_to_delete, request.remote_addr)
             something_was_deleted = True
         except FileNotFoundError:
             # if no such file was found, ignore it; highly likely, it was just a bad extension guess
             pass
 
-    if something_was_deleted:
+    if something_was_deleted:        
         response = {'success': True, 'deleted_filename': filename_to_delete}
         return response, 200
     else:
@@ -128,11 +130,12 @@ def get_file(filename):
     """Retrieve file from the storage directory by a specified name.
     Checks if the file extension is supported before sending the file.
     """
+    current_app.logger.info("File %s requested by %s", filename, request.remote_addr)
     file_extension = os.path.splitext(filename)[1]
     if file_extension not in current_app.config["SUPPORTED_IMAGE_FILE_EXTENSIONS"]:
         raise InvalidUsage("Extension is not supported", 400, [file_extension])
     # extension is supported, cas safely send the file
-    try:
+    try:        
         return send_from_directory(current_app.config['IMAGES_PATH'], filename, as_attachment=False)
     except NotFound:
-        raise InvalidUsage("Image with this name has not been found", 404, [current_app.config['IMAGES_PATH'], filename + file_extension])
+        raise InvalidUsage("Image with this name has not been found", 404, [filename + file_extension])

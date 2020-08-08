@@ -9,7 +9,7 @@ errors = Blueprint('errors', __name__)
 
 
 class InvalidUsage(Exception):
-    def __init__(self, description, status_code=400, payload=None):
+    def __init__(self, description, status_code=400, payload=[]):
         Exception.__init__(self)
         self.description = description
         self.status_code = status_code or 400

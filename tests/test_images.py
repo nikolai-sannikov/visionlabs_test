@@ -1,22 +1,21 @@
-
-import unittest
-from flask import current_app
-from app import create_app
-from app.image_utils import encode_image_base64
-
-from PIL import Image
-import requests
 import io
 import os
 import logging
 import shutil
-
+import unittest
 import base64
+import requests
+
+from flask import current_app
+from PIL import Image
+
+from app import create_app
+from app.image_utils import encode_image_base64
+
 
 # test cases rely on their order as listed in this file
 unittest.TestLoader.sortTestMethodsUsing = None
 
-log = logging.getLogger("TestLog")
 
 class ImageTests(unittest.TestCase):
     IMAGE_URLS=[
@@ -40,7 +39,7 @@ class ImageTests(unittest.TestCase):
 
     @staticmethod
     def delete_and_verify_deletion(filename_to_delete, client):
-        log.info("Deleting file %s",filename_to_delete)
+        current_app.logger.info("Deleting file %s",filename_to_delete)
         client.delete("/image", data=filename_to_delete)                
         
         response = client.get("/image")                
@@ -60,7 +59,7 @@ class ImageTests(unittest.TestCase):
             image = Image.open(response.raw)    
             
             images.append(image)
-        log.info("Retrieved %d out of %d images for future test", len(images), len(ImageTests.IMAGE_URLS))      
+        current_app.logger.info("Retrieved %d out of %d images for future test", len(images), len(ImageTests.IMAGE_URLS))      
         return images
 
     def test_images_full_scenario(self):
@@ -79,11 +78,11 @@ class ImageTests(unittest.TestCase):
             # response should contain filename assigned to this image, store these filenames to verify their existense later
             self.assertTrue('new_image_filename' in response.get_json())
             self.image_filenames.append(response.get_json()['new_image_filename'])
-        log.info("Created files: %s", str(self.image_filenames))
+        current_app.logger.info("Created files: %s", str(self.image_filenames))
                 
         #all the newly added files should be now listed
         response = self.client.get("/image")        
-        log.debug(response.get_json())
+        current_app.logger.debug(response.get_json())
         listed_files = [image_metadata['file_name'] for image_metadata in response.get_json()]
         for image_filename in self.image_filenames:
             self.assertTrue(image_filename in listed_files)
@@ -100,18 +99,18 @@ class ImageTests(unittest.TestCase):
 
         # try to get a remaining image         
         image_to_get = self.image_filenames[-1]
-        log.info("Retrieving an image: %s",image_to_get)
+        current_app.logger.info("Retrieving an image: %s",image_to_get)
         response = self.client.get("/images/"+image_to_get)            
         self.assertTrue(response.get_data() is not None)
         self.assertEqual(response.status_code, 200)
 
     def test_delete_non_existing_image(self):
         response = self.client.delete("/image", data="definitely_non_existent_image")
-        log.debug(response.get_json())
+        current_app.logger.debug(response.get_json())
         self.assertEqual(response.status_code, 400)
     
     def test_get_non_existing_image(self):
         response = self.client.get("/images/definitely_non_existent_image.jpg")
-        log.debug(response.get_json())
+        current_app.logger.debug(response.get_json())
         self.assertEqual(response.status_code, 404)
         
