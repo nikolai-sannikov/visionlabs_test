@@ -87,4 +87,7 @@ By default, the only supported extension is ```.jpg```. Can be further extended 
 Directory to store images can also be set in ```config.py``` file. For testing scenario, it is possible to configure app to automatically remove this folder on unittest teardown.
 
 ## Deployment
-Run ```docker-compose up``` in project directory.
+Run ```$docker-compose up``` in project directory. By default uses port ```5000```
+
+## Testing
+Run ```$flask run``` to start provided basic unit tests and a full usage scenario.
